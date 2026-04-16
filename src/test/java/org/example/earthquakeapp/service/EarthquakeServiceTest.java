@@ -33,6 +33,9 @@ class EarthquakeServiceTest {
     @InjectMocks
     private EarthquakeService service;
 
+    @InjectMocks
+    private GeminiService serviceGemini;
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "usgsUrl", "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson");
@@ -116,6 +119,32 @@ class EarthquakeServiceTest {
         assertEquals(1, result.size());
         assertEquals(3.0, result.get(0).getMag());
     }
+
+    @Test
+    void shouldBuildPromptCorrectly() {
+        String question = "What is the strongest earthquake?";
+        List<Earthquake> mockData = List.of(
+                new Earthquake("1", 4.5, null, "Japan", null, 123L, null, null, null, null, null, null)
+        );
+
+        when(repository.findAll()).thenReturn(mockData);
+
+        String prompt = serviceGemini.buildPrompt(question);
+
+        assertTrue(prompt.contains("Japan"));
+        assertTrue(prompt.contains(question));
+        assertTrue(prompt.contains("LAST 1 HOUR"));
+    }
+
+    @Test
+    void shouldHandleEmptyEarthquakeData() {
+        when(repository.findAll()).thenReturn(List.of());
+
+        String prompt = serviceGemini.buildPrompt("test");
+
+        assertTrue(prompt.contains("EARTHQUAKE DATA"));
+    }
+
 
     private GeoJsonResponse buildMockGeoJsonResponse(Double mag) {
         Properties props = new Properties();

@@ -76,6 +76,18 @@
     <h4 class="mt-5"> Earthquake Locations</h4>
     <div id="map" class="map-container"></div>
 
+
+    <h4 class="mt-5">🤖 Earthquake AI Assistant</h4>
+
+    <div class="card p-3 mb-3">
+        <div id="chatBox" style="height: 250px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fafafa;"></div>
+
+        <div class="input-group mt-2">
+            <input type="text" id="chatInput" class="form-control" placeholder="Ask something about earthquakes...">
+            <button class="btn btn-success" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
     <footer>
         <p>Made by Aleksandar Stojanov</p>
         <small>Earthquake Monitor using USGS Real-time Data • Spring Boot + PostgreSQL</small>
@@ -223,6 +235,51 @@
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
     };
+
+    function appendMessage(sender, text) {
+        const chatBox = document.getElementById("chatBox");
+
+        const msg = document.createElement("div");
+        msg.style.marginBottom = "10px";
+
+        msg.innerHTML = `
+        <b>${sender}:</b> ${text}
+    `;
+
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("chatInput");
+        const question = input.value.trim();
+
+        if (!question) return;
+
+        appendMessage("You", question);
+        input.value = "";
+
+        fetch("/api/ai/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ question })
+        })
+            .then(res => res.json())
+            .then(data => {
+                let answer = data.answer;
+
+                if (!answer) {
+                    answer = JSON.stringify(data).slice(0, 500) + "...";
+                }
+
+                appendMessage("AI", answer);
+            })
+            .catch(err => {
+                appendMessage("AI", "Error: Could not get response");
+            });
+    }
 </script>
 </body>
 </html>
